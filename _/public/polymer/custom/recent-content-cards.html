@@ -1,0 +1,92 @@
+<link rel="import" href="/s/polymer/polymer/polymer.html">
+<link rel="import" href="/s/polymer/paper-spinner/paper-spinner.html">
+<link rel="import" href="/s/polymer/custom/content-card.html">
+<link rel="import" href="/s/polymer/event-infinite-scroll/event-infinite-scroll.html">
+<dom-module id="recent-content-cards">
+  <template>
+    <style>
+      :host {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow-x: hidden;
+        overflow-y: auto;
+        justify-content: center;
+        background: #323742;
+      }
+      :host[hidden], .hidden {
+        display: none !important;
+      }
+
+      paper-card {
+        margin: 8px;
+        --paper-card-header-color: var(--paper-teal-500);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-wrap: break-word;
+      }
+
+      .spinner-container {
+        width: 100%;
+        display: flex;
+        padding: 32px;
+        box-sizing: border-box;
+      }
+
+      #spinner {
+        margin: auto;
+      }
+    </style>
+    <template is="dom-repeat" items="{{recent}}">
+      <content-card info="{{item}}"></content-card>
+    </template>
+    <div class="spinner-container" hidden="{{!loading}}">
+      <paper-spinner id="spinner" active="{{loading}}"></paper-spinner>
+    </div>
+    <event-infinite-scroll
+      id="evtscroll"
+      scroll-offset="350"
+      on-reach-bottom="reachedBottom">
+    </event-infinite-scroll>
+  </template>
+</dom-module>
+<script>
+  (function() {
+      Polymer({
+        is: 'recent-content-cards',
+        properties: {
+          recent: {
+            type: Array,
+            value: []
+          },
+          loading: Boolean
+        },
+        attached: function() {
+          this.recent = [];
+          this.loadMore.call(this);
+          this.$.evtscroll.startObserve();
+        },
+        detached: function() {
+          this.recent = [];
+          this.$.evtscroll.stopObserve();
+        },
+        loadMore: function() {
+          var self = this;
+          if (self.loading) return;
+          self.loading = true;
+          $.getJSON('/_/content/recent?offset=' + self.recent.length, function(data) {
+            if (!data) return;
+            for (var i = 0; i < data.length; i++)
+              self.push('recent', data[i]);
+          }).always(function() {
+            self.loading = false;
+          });
+        },
+        reachedBottom: function() {
+          this.loadMore.call(this);
+        }
+      });
+    })();
+  </script>

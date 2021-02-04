@@ -1,0 +1,207 @@
+<link rel="import" href="/s/polymer/polymer/polymer.html">
+<dom-module id="content-card">
+  <template>
+    <style>
+      :host {
+        flex: 1;
+        /*min-width: 360px;
+        max-width: 640px;*/
+        color: #000;
+        margin: 8px;
+        display: inline-flex;
+        width: 512px;
+        height: 288px;
+        min-width: 512px;
+        min-height: 288px;
+        max-width: 512px;
+        max-height: 288px;
+      }
+      :host[hidden], .hidden {
+        display: none !important;
+      }
+
+      #content {
+        background-color: #222937;
+        display: flex;
+        flex-direction: column;
+        background-size: cover;
+        background-position: center;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+        box-sizing: border-box;
+        padding: 20px;
+        position: relative;
+      }
+
+      #content .content-title {
+        color: #fff;
+        font-size: 25px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      #content .content-provider {
+        color: #e0e0e0;
+        font-size: 15px;
+      }
+
+      paper-spinner {
+        position: absolute;
+        margin: auto;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    </style>
+    <a id="content" href="/media/{{info.id}}">
+      <div class="content-title">{{info.title}}</div>
+      <div class="content-provider">{{info.provider}}</div>
+      <paper-spinner active="{{loading}}" hidden="{{!loading}}"></paper-spinner>
+    </a>
+  </template>
+</dom-module>
+<script>
+  (function() {
+      Polymer({
+        is: 'content-card',
+        properties: {
+          info: Object,
+          loading: {
+            type: Boolean,
+            value: true
+          },
+          // u: String,
+          // req: Object,
+          img: Object
+        },
+        attached: function() {
+          var self = this;
+          // var req = new XMLHttpRequest();
+          // req.open('GET', '/_/content/' + this.info.id + '/thumbnail-small.jpg', true);
+          // req.responseType = 'blob';
+          // req.onload = function(e) {
+          //   if (this.status !== 200) return;
+          //   self.loading = false;
+          //   var u = URL.createObjectURL(this.response);
+          //   self.u = u;
+          //   $(self.$.content).css('background-image', 'linear-gradient(rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%), url(' + u + ')');
+          // }
+          // self.req = req;
+          // req.send();
+
+          var img = new Image();
+          img.src = '/_/content/' + this.info.id + '/thumbnail-small.jpg';
+          img.onload = function() {
+            self.loading = false;
+            $(self.$.content).css('background-image', 'linear-gradient(rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%), url(' + this.src + ')');
+          }
+          self.img = img;
+        },
+        detached: function() {
+          var self = this;
+          // try { self.req.abort(); } catch(e) { }
+          // URL.revokeObjectURL(self.u);
+          self.img.src = '';
+        },
+        openMedia: function() {
+          $('search-bar')[0]._hide();
+          window.location = '/media/' + this.info.id;
+        },
+        normalizeDescription: function(description) {
+          var len = description.length;
+          description = description.substring(0, 200).replace(/\n/g, '<br>');
+          if (description.length < len)
+            description += '...';
+          return description;
+        }
+      });
+    })();
+  </script>
+
+
+
+<!-- <link rel="import" href="/s/polymer/polymer/polymer.html">
+<dom-module id="content-card">
+  <template>
+    <style>
+      :host {
+        flex: 1;
+        min-width: 360px;
+        max-width: 640px;
+        color: #000;
+        margin: 8px;
+      }
+      :host[hidden], .hidden {
+        display: none !important;
+      }
+
+      paper-card {
+        --paper-card-header-color: var(--paper-cyan-500);
+        --paper-card-header-image: {
+          max-height: 360px;
+          /*min-width: 640px;*/
+          height: 100%;
+          width: 100%;
+        };
+        --paper-card-header-image-text: {
+          background: rgba(0,0,0,0.6);
+          width: 100%;
+          bottom: 4px;
+          box-sizing: border-box;
+        };
+        width: 100%;
+      }
+
+      paper-button {
+        color: #000;
+      }
+
+      .description {
+        min-width: 100%;
+        width: 0;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        word-wrap: break-word;
+        box-sizing: border-box;
+      }
+    </style>
+    <paper-card heading="{{info.title}}" image="/_/content/{{info.id}}/thumbnail-mini.jpg?t={{now}}">
+      <div class="card-content description" inner-h-t-m-l="{{normalizeDescription(info.description)}}"></div>
+      <div class="card-actions">
+        <a href="/media/{{info.id}}"><paper-button>Open</paper-button></a>
+      </div>
+    </paper-card>
+  </template>
+</dom-module>
+<script>
+  (function() {
+      Polymer({
+        is: 'content-card',
+        properties: {
+          now: {
+            type: Number,
+            notify: true
+          },
+          info: Object
+        },
+        ready: function() {
+          var self = this;
+          self.now = Date.now();
+        },
+        openMedia: function() {
+          $('search-bar')[0]._hide();
+          window.location = '/media/' + this.info.id;
+        },
+        normalizeDescription: function(description) {
+          var len = description.length;
+          description = description.substring(0, 200).replace(/\n/g, '<br>');
+          if (description.length < len)
+            description += '...';
+          return description;
+        }
+      });
+    })();
+  </script> -->

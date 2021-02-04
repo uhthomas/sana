@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Curving test</title>
+  <style type="text/css">
+  body {
+    margin: 0;
+    background: #1A2026;
+    width: 100%;
+    height: 100%;
+  }
+
+  canvas {
+    display: block;
+    z-index: 1;
+    position: absolute;
+  }
+  </style>
+</head>
+
+<body>
+  <video id="audio" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; background: #000;" src="/media/5661f78804a364bd7893456d.mp4"></video>
+  <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);"></div>
+  <canvas id="canvas" height="1000" width="1800"></canvas>
+  <script type="text/javascript">
+  // var audio = new Audio();
+  // audio.src = 'https://sana.6f.io/media/565f6fa804a3640e4da1f050.mp4';
+  var ctx = canvas.getContext('2d');
+  var context = new AudioContext();
+  var javascriptNode = context.createScriptProcessor(8192, 1, 1);
+  javascriptNode.connect(context.destination);
+  var analyser = context.createAnalyser();
+  analyser.fftSize = 4096;
+  analyser.smoothingTimeConstant = 0.67;
+  var sourceNode = context.createMediaElementSource(audio);
+  sourceNode.connect(analyser);
+  analyser.connect(javascriptNode);
+  sourceNode.connect(context.destination);
+  var spacing = 20;
+
+  function draw() {
+    var arr = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatFrequencyData(arr);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#FFFFFF';
+
+    //arr = generate(2, arr);
+    newArr = [];
+    var min = -65.876969601387;
+    var max = 20;
+    for (var i = 0; i <= Math.ceil(canvas.width / spacing); i++) {
+      newArr.push(i * spacing);
+      newArr.push(canvas.height - (((arr[i] - min) * (max - min)) / 6));
+    }
+
+    drawCurve(ctx, newArr, 0.5, false, 24, false);
+    ctx.stroke();
+
+    requestAnimationFrame(draw);
+  }
+
+  function generate(times, arr) {
+    if (times <= 0) return arr;
+    var payload = [];
+    for (var i = 0; i < canvas.width / spacing; i++) {
+      payload.push(arr[i]);
+      payload.push((arr[i] + arr[i + 1]) / 2);
+    }
+    return generate(--times, payload);
+  }
+
+  function drawCurve(ctx, ptsa, tension, isClosed, numOfSegments, showPoints) {
+
+    showPoints = showPoints ? showPoints : false;
+
+    ctx.beginPath();
+
+    drawLines(ctx, getCurvePoints(ptsa, tension, isClosed, numOfSegments));
+
+    if (showPoints) {
+      ctx.stroke();
+      ctx.beginPath();
+      for (var i = 0; i < ptsa.length - 1; i += 2)
+        ctx.rect(ptsa[i] - 2, ptsa[i + 1] - 2, 4, 4);
+    }
+  }
+
+  function getCurvePoints(pts, tension, isClosed, numOfSegments) {
+    tension = (typeof tension != 'undefined') ? tension : 0.5;
+    isClosed = isClosed ? isClosed : false;
+    numOfSegments = numOfSegments ? numOfSegments : 16;
+
+    var _pts = [],
+      res = [], 
+      x, y, 
+      t1x, t2x, t1y, t2y, 
+      c1, c2, c3, c4, 
+      st, t, i; 
+
+    _pts = pts.slice(0);
+    if (isClosed) {
+      _pts.unshift(pts[pts.length - 1]);
+      _pts.unshift(pts[pts.length - 2]);
+      _pts.unshift(pts[pts.length - 1]);
+      _pts.unshift(pts[pts.length - 2]);
+      _pts.push(pts[0]);
+      _pts.push(pts[1]);
+    } else {
+      _pts.unshift(pts[1]);
+      _pts.unshift(pts[0]);
+      _pts.push(pts[pts.length - 2]);
+      _pts.push(pts[pts.length - 1]);
+    }
+
+    for (i = 2; i < (_pts.length - 4); i += 2) {
+      for (t = 0; t <= numOfSegments; t++) {
+
+        t1x = (_pts[i + 2] - _pts[i - 2]) * tension;
+        t2x = (_pts[i + 4] - _pts[i]) * tension;
+
+        t1y = (_pts[i + 3] - _pts[i - 1]) * tension;
+        t2y = (_pts[i + 5] - _pts[i + 1]) * tension;
+
+        st = t / numOfSegments;
+
+        c1 = 2 * Math.pow(st, 3) - 3 * Math.pow(st, 2) + 1;
+        c2 = -(2 * Math.pow(st, 3)) + 3 * Math.pow(st, 2);
+        c3 = Math.pow(st, 3) - 2 * Math.pow(st, 2) + st;
+        c4 = Math.pow(st, 3) - Math.pow(st, 2);
+
+        x = c1 * _pts[i] + c2 * _pts[i + 2] + c3 * t1x + c4 * t2x;
+        y = c1 * _pts[i + 1] + c2 * _pts[i + 3] + c3 * t1y + c4 * t2y;
+
+        res.push(x);
+        res.push(y);
+
+      }
+    }
+
+    return res;
+  }
+
+  function drawLines(ctx, pts) {
+    ctx.moveTo(pts[0], pts[1]);
+    for (i = 2; i < pts.length - 1; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+  }
+
+  audio.play();
+  draw();
+
+  window.onload = window.onresize = function() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  </script>
+</body>
+
+</html>

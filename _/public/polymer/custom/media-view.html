@@ -1,0 +1,320 @@
+<link rel="import" href="/s/polymer/polymer/polymer.html">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/musicmetadata/2.0.2/musicmetadata.js"></script>
+<dom-module id="media-view">
+  <template>
+    <style is="custom-style">
+      :host {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-size: cover;
+        background-position: center;
+        height: 100%;
+        -webkit-flex: 1;
+        flex: 1;
+
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      :host[hidden], .hidden {
+        display: none !important;
+      }
+
+      .video-container {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        margin: 16px;
+        margin-bottom: 0px;
+        border-radius: 2px;
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        width: calc(100% - 32px);
+        height: calc(100% - 32px);
+        min-width: 360px;
+        /* min-height: 360px; */
+        max-width: 1280px;
+        max-height: 720px;
+        flex-shrink: 0;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        background: black;
+        position: absolute;
+      }
+
+      canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+        opacity: .6;
+      }
+
+      paper-card {
+        min-width: 360px;
+        max-width: 1280px;
+        width: calc(100% - 32px);
+        margin: 16px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        --paper-card-header-color: white;
+      }
+
+      paper-card .card-content.description {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        word-wrap: break-word;
+      }
+    </style>
+    <div class="video-container">
+      <video id="audio" controls preload="auto" src="/_/content/{{id}}/media.mp4?t={{now}}"></video>
+      <canvas id="vis" width="1920" height="1080"></canvas>
+    </div>
+    <paper-card id="info">
+      <div class="card-content description"></div>
+    </paper-card>
+  </template>
+</dom-module>
+<script>
+  (function() {
+      Polymer({
+        is: 'media-view',
+        properties: {
+          now: {
+            type: Number,
+            notify: true
+          },
+          id: String,
+          stopped: Boolean,
+          src: Object
+        },
+        ready: function() {
+          var self = this;
+          self.now = Date.now();
+          $('#main paper-header-panel').attr('media-id', self.id).css('background-image', 'linear-gradient(rgba(0,0,0,0.4) 0%,rgba(0,0,0,.6) 75%,rgba(0,0,0,.8) 100%), url(/_/content/' + self.id + '/thumbnail-large.jpg)');
+          $.getJSON('/_/content/' + self.id + '/info.json', function(data) {
+            var ele = $(self).find('paper-card .card-content.description').html(self.normalizeDescription(data.description));
+            document.title = data.title;
+            $('paper-toolbar .title').text(data.title);
+            $(self.$.info).attr('heading', data.title).append(ele);
+          });
+          window.URL = (URL || webkitURL);
+          $(self).on('drop', function(e) {
+            console.info(e);
+            console.warn((e.dataTransfer || e.originalEvent.dataTransfer).items);
+            e.preventDefault();
+            var files = (e.dataTransfer || e.originalEvent.dataTransfer).files;
+            var file = files[0];
+            if (file.type.split('/')[0] === 'audio') {
+              musicmetadata(file, function(err, info) {
+                if (err) return;
+
+                var t = $.extend(true, {}, info);
+                delete t.picture;
+                $(self).find('.description').text(JSON.stringify(t));
+
+                console.info(info);
+
+  							if (info.picture.length < 1) return;
+  							var picture = info.picture[0];
+  							var u = URL.createObjectURL((new Blob([picture.data], {type: 'image/' + picture.format})));
+                self.$.audio.poster = u;
+                $('#main paper-header-panel[media-id="' + self.id + '"]').css('background-image', 'linear-gradient(rgba(0,0,0,0.4) 0%,rgba(0,0,0,.6) 75%,rgba(0,0,0,.8) 100%), url(' + u + ')');
+              });
+            } else if (file.type.split('/')[0] !== 'video') return;
+            document.title = file.name;
+            $('paper-toolbar .title').text(file.name);
+            $(self.$.info).attr('heading', file.name);
+            $(self).find('.description').text('');
+            var u = URL.createObjectURL(file);
+            self.$.audio.src = u;
+            self.$.audio.play();
+          }).on('dragover dragenter dragend dragleave', function(e) {
+            e.preventDefault();
+          });
+          $(self).find('video')[0].load();
+          $(self).find('video')[0].oncanplaythrough = $(self).find('video')[0].play;
+          self.drawVis();
+        },
+        attached: function() {
+          $('#main paper-toolbar').css({
+            'background': 'transparent',
+            'box-shadow': 'none'
+          });
+        },
+        detached: function() {
+          this.stopped = true;
+          $(this).find('video')[0].pause();
+          $(this).find('video').attr('src', '').remove();
+          document.title = 'Sana';
+          $('#main paper-toolbar').css({
+            'background': '#282c35',
+            'box-shadow': 'rgba(0, 0, 0, 0.156863) 0px 3px 10px, rgba(0, 0, 0, 0.227451) 0px 3px 10px'
+          });
+          $('#main paper-header-panel[media-id="' + this.id + '"]').css('background-image', 'none');
+        },
+        normalizeDescription: function(description) {
+          description = description.replace(/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/gi, function(url) {
+            return $('<a></a>').attr('href', url).attr('target', '_blank').text(url).prop('outerHTML');
+          });
+          return description.replace(/\n/g, '<br>');
+        },
+        size: function() {
+          if ($(window).height() < $(window).width() / (16 / 9)) {
+              $('.video-container').css({
+                height: $(window).height() - 100,
+                width: ($(window).height() - 100) * (16 / 9)
+              });
+            } else {
+              $('.video-container').css({
+                height: $('.video-container').width() / (16 /9),
+                width: 'calc(100% - 32px)'
+              });
+            }
+        },
+        drawVis: function() {
+          var self = this;
+          self.$.audio.crossOrigin = "anonymous";
+          var ctx = self.$.vis.getContext('2d');
+          // if (!window.audioContext) {
+          //   window.audioContext = new (AudioContext || webkitAudioContext)();
+          // }
+          //
+          // if (!window.analyser) {
+          //   window.analyser = window.audioContext.createAnalyser();
+          //   var fftSizes = {
+          //     41000: 4096,
+          //     48000: 4096,
+          //     96000: 8192,
+          //     192000: 16384
+          //   }
+          //   analyser.fftSize = fftSizes[audioContext.sampleRate] || 4096;
+          //   analyser.smoothingTimeConstant = 0.67;
+          // }
+          //
+          // self.src = window.audioContext.createMediaElementSource(self.$.audio);
+          // self.src.connect(analyser);
+          // analyser.connect(window.audioContext.destination);
+
+          window.audioContext = window.audioContext || new (AudioContext || webkitAudioContext)();
+          var analyser = audioContext.createAnalyser();
+          var fftSizes = {
+            41000: 4096,
+            48000: 4096,
+            96000: 8192,
+            192000: 16384
+          }
+          analyser.fftSize = fftSizes[audioContext.sampleRate] || 4096;
+          analyser.smoothingTimeConstant = 0.67;
+
+          var src = audioContext.createMediaElementSource(self.$.audio);
+          src.connect(analyser);
+          analyser.connect(audioContext.destination);
+
+          //   var context = new AudioContext();
+          //   var javascriptNode = context.createScriptProcessor(8192, 1, 1);
+          //   javascriptNode.connect(context.destination);
+          //   analyser = context.createAnalyser();
+          //   analyser.fftSize = 4096;
+          //   analyser.smoothingTimeConstant = 0.67;
+          //   var sourceNode = context.createMediaElementSource(self.$.audio);
+          //   sourceNode.connect(analyser);
+          //   analyser.connect(javascriptNode);
+          //   sourceNode.connect(context.destination);
+          // }
+          var spacing = 20;
+          var divider = 6;
+          var barWidth = 20;
+          var spacing = 4.2;
+
+          requestAnimationFrame = requestAnimationFrame || webkitRequestAnimationFrame;
+
+          ctx.font = "40px Roboto";
+
+          var last = new Date() * 1 - 1;
+          var fps = 0;
+          function draw() {
+            if (!self.stopped) requestAnimationFrame(draw);
+
+            self.size();
+
+            var arr = new Float32Array(analyser.frequencyBinCount);
+            analyser.getFloatFrequencyData(arr);
+            ctx.clearRect(0, 0, self.$.vis.width, self.$.vis.height);
+
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#000000';
+            ctx.fillStyle = '#ffffff';
+
+            var now = new Date();
+            var nowFps = 1000 / (now - last);
+            if (now != last) {
+              fps += (nowFps - fps) / 20;
+              last = now;
+            }
+
+            ctx.shadowColor="#000000";
+            ctx.shadowBlur=7;
+            ctx.lineWidth=5;
+            ctx.fillText('' + Math.round(fps), 50, 50);
+            ctx.shadowBlur=0;
+            ctx.fillStyle="#FFFFFF";
+            ctx.fillText('' + Math.round(fps), 50, 50);
+
+            var min = -65.876969601387;
+            var max = 20;
+
+            // newArr = [];
+            // for (var i = 0; i <= Math.ceil(self.$.vis.width / spacing); i++) {
+            //   newArr.push(i * spacing);
+            //   newArr.push(self.$.vis.height - (((arr[i] - min) * (max - min)) / divider));
+            // }
+
+            // drawCurve(ctx, newArr, 0.5, false, 24, false);
+            // ctx.stroke();
+            // ctx.lineWidth = 4;
+            // ctx.strokeStyle = '#FFFFFF';
+            // ctx.stroke();
+
+            arr = generate(1, arr, self.$.vis.width, spacing);
+            // ctx.beginPath();
+            for (var i = 0; i < self.$.vis.width / spacing; i++) {
+              var width = barWidth;
+              var height = ((((arr[i] - min) * (max - min)) / divider));
+              var x = (i * (barWidth + spacing));
+              var y = (self.$.vis.height - height);
+
+              ctx.fillStyle = '#000000';
+              ctx.shadowBlur=7;
+              ctx.lineWidth=5;
+              ctx.fillRect(x, y, width, height);
+              // ctx.fillRect(x, (self.$.vis.height - height) / 2, width, height);
+              ctx.shadowBlur=0;
+              ctx.fillStyle="#FFFFFF";
+              ctx.fillRect(x, y, width, height);
+              // ctx.fillRect(x, (self.$.vis.height - height) / 2, width, height);
+              // ctx.quadraticCurveTo(x, y, (x + barWidth + spacing) / 2, (self.$.vis.height - ((((arr[i+1] - min) * (max - min)) / divider))) / 2);
+            }
+          }
+          draw();
+        }
+      });
+    })();
+
+    function generate(times, arr, width, spacing) {
+      if (times <= 0) return arr;
+      var payload = [];
+      for (var i = 0; i < width / spacing; i++) {
+        payload.push(arr[i]);
+        payload.push((arr[i] + arr[i + 1]) / 2);
+      }
+      return generate(--times, payload, width, spacing);
+    }
+  </script>

@@ -1,0 +1,66 @@
+!!! 5
+html
+  head
+    title
+      | Sana
+    script[type="text/javascript"][src="/s/script/jquery.js"]
+    script[type="text/javascript"][src="/s/script/moment.js"]
+    style[type="text/css"]
+      html, body {
+        width: 100%;
+        height: 100%;
+      }
+      
+      body {
+        margin: 0;
+        background: #1A2026;
+        background: #f2f2f2;
+        color: #fff;
+        color: #000;
+        position: absolute;
+        font-family: arial, sans-serif;
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .v {
+        width: 320px;
+        height: 209px;
+        padding: 10px 10px 30px 10px;
+        position: relative;
+        display: block;
+        box-sizing: border-box;
+      }
+
+      .v .img {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+      }
+
+      .v::after {
+        content: attr(data-uploaded);
+        position: absolute;
+        line-height: 20px;
+        font-size: 16px;
+        bottom: 0;
+        color: rgba(0,0,0,0.6);
+      }
+  body
+    h1[style="width: 100%;"] Test
+    script[type="text/javascript"]
+      $.ajax({
+        url: '/_/recent',
+        contentType: 'application/json',
+      }).done(function(data, status, xhr) {
+        console.info(data);
+        for (var i = 0; i < data.length; i++) {
+          $('<a class="v"><div class="img"></div></a>')
+          .attr('href', '/media/' + data[i].id + '.mp4')
+          .appendTo('body')
+          .attr('data-uploaded', moment(data[i].uploaded).fromNow())
+          .find('.img').css('background-image', 'url(/thumbnail-mini/' + data[i].id + '.jpg)');
+        }
+      });

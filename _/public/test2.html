@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Bar test</title>
+  <style type="text/css">
+  body {
+    margin: 0;
+    background: #1A2026;
+    width: 100%;
+    height: 100%;
+  }
+
+  canvas {
+    display: block;
+  }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas" height="1000" width="1800"></canvas>
+  <script type="text/javascript">
+  var audio = new Audio();
+  audio.controls = true;
+  audio.src = '/_/content/56600d4204a3648adc5f33b1/media.mp4';
+  var ctx = canvas.getContext('2d');
+  var context = new AudioContext();
+  var javascriptNode = context.createScriptProcessor(8192, 1, 1);
+  javascriptNode.connect(context.destination);
+  var analyser = context.createAnalyser();
+  analyser.fftSize = 4096;
+  analyser.smoothingTimeConstant = 0.67;
+  var sourceNode = context.createMediaElementSource(audio);
+  sourceNode.connect(analyser);
+  analyser.connect(javascriptNode);
+  sourceNode.connect(context.destination);
+  var spacing = 2.2;
+  var barWidth = 20;
+
+  function draw() {
+    var arr = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatFrequencyData(arr);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#FFFFFF';
+
+    //arr = generate(2, arr);
+    newArr = [];
+    var min = -65.876969601387;
+    var max = 20;
+    // for (var i = 0; i < canvas.width / spacing; i++) {
+    //   newArr.push(i * spacing);
+    //   newArr.push(canvas.height - (((arr[i] - min) * (max - min)) / 6));
+    // }
+
+    // drawCurve(ctx, newArr, 0.5, false, 24, false);
+    // ctx.stroke();
+      
+    arr = generate(1, arr);  
+
+    for (var i = 0; i < canvas.width / spacing; i++) {
+      ctx.fillRect(i * (barWidth + spacing), canvas.height - (((arr[i] - min) * (max - min)) / 6), barWidth, (((arr[i] - min) * (max - min)) / 6));
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  function generate(times, arr) {
+    if (times <= 0) return arr;
+    var payload = [];
+    for (var i = 0; i < canvas.width / spacing; i++) {
+      payload.push(arr[i]);
+      payload.push((arr[i] + arr[i + 1]) / 2);
+    }
+    return generate(--times, payload);
+  }
+
+  draw();
+
+  window.onload = window.onresize = function() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  document.getElementsByTagName('body')[0].appendChild(audio)
+  audio.play();
+  </script>
+</body>
+
+</html>

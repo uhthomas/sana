@@ -1,0 +1,129 @@
+!!! 5
+html
+  head
+    title
+      | Sana
+    meta[name="viewport"][content="width=device-width, initial-scale=1"]
+    script[type="text/javascript"][src="/s/script/webcomponents/webcomponents-lite.js"]
+    link[rel="import"][href="/s/polymer/paper-drawer-panel/paper-drawer-panel.html"]
+    link[rel="import"][href="/s/polymer/paper-header-panel/paper-header-panel.html"]
+    link[rel="import"][href="/s/polymer/paper-toolbar/paper-toolbar.html"]
+    link[rel="import"][href="/s/polymer/paper-icon-button/paper-icon-button.html"]
+    link[rel="import"][href="/s/polymer/iron-icons/iron-icons.html"]
+    link[rel="import"][href="/s/polymer/font-roboto/roboto.html"]
+    link[rel="import"][href="/s/polymer/paper-card/paper-card.html"]
+    link[rel="import"][href="/s/polymer/paper-button/paper-button.html"]
+    link[rel="import"][href="/s/polymer/paper-styles/color.html"]
+    link[rel="import"][href="/s/polymer/paper-item/paper-icon-item.html"]
+    link[rel="import"][href="/s/polymer/custom/search-bar.html"]
+    link[rel="import"][href="/s/polymer/custom/media-view.html"]
+    link[rel="import"][href="/s/polymer/custom/recent-content-cards.html"]
+    link[rel="import"][href="/s/polymer/paper-progress/paper-progress.html"]
+    script[type="text/javascript"][src="/s/script/jquery.js"]
+    script[type="text/javascript"][src="/s/script/page.js"]
+    style[type="text/css"][is="custom-style"][include="shared-styles"]
+      body {
+        font-family: Roboto, 'Noto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+
+      #mainPanel {
+        -ms-flex-direction: row;
+        -webkit-flex-direction: row;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      paper-drawer-panel {        
+        --paper-drawer-panel-left-drawer-container: {
+          background-color: #323742;
+          color: white;
+          z-index: 2;
+        };
+      }
+
+      paper-toolbar {
+        z-index: 1;
+      }
+
+      paper-header-panel[main] {
+        background-size: cover;
+        background-position: center;
+        overflow-y: auto;
+      }
+
+      paper-header-panel paper-toolbar {
+        --paper-toolbar-background: #282c35;
+        box-shadow: rgba(0, 0, 0, 0.156863) 0px 3px 10px, rgba(0, 0, 0, 0.227451) 0px 3px 10px;
+        transition: background .2s ease, box-shadow .2s ease;
+      }
+
+      paper-header-panel paper-toolbar paper-icon-button[icon="menu"] {
+        min-width: 40px;
+      }
+
+      paper-header-panel paper-toolbar > .title {
+        flex: 1;
+      }
+
+      paper-progress {
+        --paper-progress-active-color: var(--paper-teal-500);
+        --paper-progress-height: 5px;
+      }
+      
+      a {
+        color: #2196f3;
+      }
+  body
+    paper-drawer-panel[force-narrow="true"]
+      paper-header-panel[drawer]
+        paper-toolbar
+          div Sana
+        paper-icon-item#recent-drawer-item[onclick="page('/recent')"]
+          iron-icon[icon="view-list"][item-icon]
+          | Recent
+        paper-icon-item#random-drawer-item[onclick="page('/random')"]
+          iron-icon[icon="history"][item-icon]
+          | Random
+      paper-header-panel[main]
+        paper-toolbar
+          paper-icon-button[icon="menu"][paper-drawer-toggle]
+          span.title Recently added
+          template[is="dom-bind"]
+            search-bar
+    script[type="text/javascript"]
+      function redirectHandler(url) {
+        return (function() {
+          page(url);
+        });
+      }
+
+      function loadRecent(ctx, nect) {
+        $('paper-drawer-panel')[0].closeDrawer && $('paper-drawer-panel')[0].closeDrawer();
+        $('#mainPanel').html('').append('<recent-content-cards></recent-content-cards>');
+        $('paper-toolbar .title').text('Recently added');
+        $('paper-header-panel paper-item').attr('active', 'false');
+        $('#recent-drawer-item').attr('active', 'true');
+        console.info('Loaded /recent');
+      }
+
+      function loadRandom(ctx, next) {
+        $('paper-drawer-panel')[0].closeDrawer();
+        $.getJSON('/_/content/random/info', function(data) {
+          page('/media/' + data.id);
+        });
+      }
+
+      function loadMedia(ctx, next) {
+        $('search-bar')[0] && $('search-bar')[0]._hide && $('search-bar')[0]._hide();
+        var ele = $('<media-view id="' + ctx.params.id + '"></media-view>');
+        $('#mainPanel').html('').append(ele);
+      }
+
+      page('/', redirectHandler('/recent'));
+      page('/recent', loadRecent);
+      page('/random', loadRandom);
+      page('/media/:id', loadMedia);
+
+      window.addEventListener('WebComponentsReady', function() {
+        page();
+      });

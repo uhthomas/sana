@@ -1,0 +1,193 @@
+<link rel="import" href="/s/polymer/polymer/polymer.html">
+<link rel="import" href="/s/polymer/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="/s/polymer/paper-spinner/paper-spinner.html">
+<link rel="import" href="/s/polymer/iron-input/iron-input.html">
+<link rel="import" href="/s/polymer/custom/content-card.html">
+<dom-module id="search-bar" deployed="{{showing}}">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+        position: relative;
+        width: auto;
+        display: flex;
+      }
+      :host[hidden], .hidden {
+        display: none !important;
+      }
+
+      :host[deployed] {
+        position: fixed;
+        box-sizing: border-box;
+        padding: 12px;
+        background: #282c35;
+        height: 64px;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+
+      paper-icon-button {
+        margin-left: auto;
+      }
+
+      input {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background: 0;
+        outline: none;
+        position: relative;
+        padding: 3px 6px;
+        color: #fff;
+        flex: 1;
+        font-size: 20px;
+      }
+
+      .modal {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow-x: hidden;
+        overflow-y: auto;
+        justify-content: center;
+        position: fixed;
+        width: 100%;
+        height: calc(100% - 64px);
+        bottom: 0;
+        left: 0;
+        background: #323742;
+      }
+
+      .modal .spinner {
+        width: 100%;
+        display: flex;
+        padding: 32px;
+        box-sizing: border-box;
+      }
+
+      :host[deployed] input {
+        display: block;
+        background: #323742;
+      }
+
+      :host[deployed] paper-icon-button {
+        background: #323742;
+      }
+
+      paper-spinner {
+        margin: auto;
+      }
+    </style>
+    <paper-icon-button id="button" icon="search" on-click="toggleSearch"></paper-icon-button>
+    <input hidden="{{!showing}}" is="iron-input" bind-value="{{q}}" id="input" on-keyup="onKeyPress" autocomplete="off">
+    <div class="modal" hidden="{{!showing}}">
+      <template is="dom-repeat" items="{{results}}">
+        <content-card info="{{item}}"></content-card>
+      </template>
+      <div class="spinner" hidden="{{!loading}}">
+        <paper-spinner active="{{loading}}"></paper-spinner>
+      </div>
+      <event-infinite-scroll
+        id="evtscroll"
+        scroll-offset="350"
+        on-reach-bottom="reachedBottom">
+      </event-infinite-scroll>
+    </div>
+  </template>
+</dom-module>
+<script>
+  (function() {
+    Polymer({
+      is: 'search-bar',
+      properties: {
+        showing: {
+          type: Boolean,
+          value: false
+        },
+        req: Object,
+        q: String,
+        results: {
+          type: Array,
+          value: []
+        },
+        loading: Boolean,
+        finished: Boolean
+      },
+      toggleSearch: function(e) {
+        var self = this;
+        if (e)
+          e.stopPropagation();
+        if (e.target === self.$.input)
+          return;
+        self.showing ? self._hide(): self._show();
+      },
+      _show: function(e) {
+        var self = this;
+        self.showing = true;
+        $(self).attr('deployed', true);
+        self.$.button.icon = 'arrow-back';
+        self.$.input.focus();
+        self.style.width = '100%';
+        self.$.evtscroll.startObserve();
+      },
+      _hide: function(e) {
+        var self = this;
+        self.showing = false;
+        $(self).removeAttr('deployed');
+        self.$.button.icon = 'search';
+        self.$.input.style.width = '0px';
+        self.$.input.blur();
+        self.style.width = 'auto';
+        self.$.evtscroll.stopObserve();
+      },
+      onKeyPress: function(e) {
+        var self = this;
+        self.results = [];
+        self.reset.call(self);
+        self.loadMore.call(self);
+        // var self = this;
+        // setTimeout(function() {
+        //   if (self.currentReq) try { self.currentReq.abort(); } catch(e) {}
+        //   self.searching = true;
+        //   $('.modal.search-bar .container').scrollTop(0).find('> *').remove();
+        //   self.currentReq = $.getJSON('/_/search?q=' + encodeURIComponent($(e.srcElement).val()), function(data) {
+        //     if (!data) return;
+        //     for (var i = 0; i < data.length; i++) {
+        //       $('<content-card></content-card>').attr('info', JSON.stringify(data[i])).appendTo('.container.search-bar');
+        //     }
+        //     $('.modal.search-bar .container').scrollTop(0);
+        //   }).always(function(e) {
+        //     if (e && e.statusText === 'abort') return;
+        //     self.searching = false;
+        //   });
+        // }, 1);
+      },
+      reset: function() {
+        var self = this;
+        if (!self.req) return;
+        try {
+          self.req.abort();
+        } catch(e) { } finally {
+          self.finished = false;
+          self.loading = false;
+        }
+      },
+      loadMore: function() {
+        var self = this;
+        if (self.finished || self.loading) return;
+        self.loading = true;
+        self.req = $.getJSON('/_/search?q=' + encodeURIComponent(self.q) + '&offset=' + self.results.length, function(data) {
+          if (!data) return self.finished = true;
+          for (var i = 0; i < data.length; i++)
+            self.push('results', data[i]);
+        }).always(function() {
+          self.loading = false;
+        });
+      },
+      reachedBottom: function() {
+        this.loadMore.call(this);
+      }
+    });
+  })();
+</script>
