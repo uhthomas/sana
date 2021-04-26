@@ -13,7 +13,8 @@ metadata permanently, due to an unexpected power supply interrupt.
 
 Any API keys or tokens present in the source code are now invalidated.
 
-This repository serves as an archive for the final state of the project. The original, untouched source can be found on the [archive branch](https://github.com/uhthomas/sana/tree/archive).
+This repository serves as an archive for the final state of the project.
+The original, untouched source can be found on the [archive branch](https://github.com/uhthomas/sana/tree/archive).
 
 ## Dependencies
 * [MongoDB](#mongodb)
@@ -28,7 +29,9 @@ corrupted the database.
 
 ### Elastic Search
 Sana initially used [Algolia](https://www.algolia.com/), but quickly hit the
-limits of the free tier. According to [archive.org](https://web.archive.org/web/20160624123354/https://www.algolia.com/pricing) this would have been 10,000 records.
+limits of the free tier. According to
+[archive.org](https://web.archive.org/web/20160624123354/https://www.algolia.com/pricing)
+this would have been 10,000 records.
 
 Once the quota was exceeded, a new Elastic Search cluster was provisioned to
 handle search queries. Metadata was inserted in the same breath as the database.
@@ -131,7 +134,7 @@ The content was collected from the following sources;
 | OneChilledPanda     | UUkUTBwZKwA9ojYqzj6VRlMQ           |
 | Paradoxium          | PLeeznYF7ppjfH3JetE0AocdA0dI3r3fFg |
 | Pixl Networks       | UU1iqebKNH36JIdBIjEy8-iQ           |
-| Real ℒℴѵℯ ❤        | UU8EvY5Cky6LM9tTE07kk2kQ           |
+| Real ℒℴѵℯ ❤         | UU8EvY5Cky6LM9tTE07kk2kQ           |
 | Selected.           | PLSr_oFUba1jtP9x5ZFs5Y0GJkb8fmC161 |
 | Self                | LLahIftu-BClclAu0uPLewGQ           |
 | Strobe Music        | UUcoYD5HDg8P-gvJU-oDYq5Q           |
@@ -144,10 +147,10 @@ The content was collected from the following sources;
 | xKito Music         | UUMOgdURr7d8pOVlc-alkfRg           |
 
 ## Hardware
-Sana ran on a dedicated Arch Linux server, with an Intel Xeon Octa-core CPU
-(16 threads), along-side 32GB ECC memory.
+Sana ran on a dedicated Arch Linux server, a Dell R720 equipped with an Intel
+Xeon E5-2630 v2 (6C12T) and 16GB ECC memory.
 
-The storage server ran Windows Server 2012 R2 with an Intel Xeon Hexa-core, also
+The storage server ran Windows Server 2012 R2 with an Intel Xeon E5-2609 v2 (4C4T),
 with 32GB ECC memory. It ran a storage pool consisting of 4 x 4TB drives. Sana
 was allocated 4TB of the pool. The two servers were linked across a 2Gbe interconnect.
 
